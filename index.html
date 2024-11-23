@@ -153,16 +153,15 @@
         <button class="toggle-button" onclick="toggleSetupSection()">Hide Setup</button>
         <div class="setup-section" id="setupSection">
             <div>
-                <button onclick="savePlayers()">Save Players</button>
-                <button onclick="loadPlayers()">Load Players</button>
-                <button onclick="clearPlayers()">Clear Players</button>
+                <button onclick="savePlayers()">Save</button>
+                <button onclick="loadPlayers()">Load</button>
+                <button onclick="clearPlayers()">Clear</button>
+                <button onclick="randomizePlayers()">Randomize</button>
             </div>
-
 
             <div class="input-group">
                 <input type="text" id="playerName" placeholder="Enter player name" onkeypress="handleKeyPress(event)">
                 <button onclick="addPlayer()">Add Player</button>
-                <button onclick="randomizePlayers()">Randomize Players</button>
             </div>
 
             <div id="playerList" class="player-list"></div>
@@ -177,6 +176,7 @@
         <div id="stopwatchSection" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;">
             <div id="stopwatchDisplay" style="font-size: 24px;">00:00.0</div>
             <button id="startStopwatchButton" onclick="startStopwatch()">Start</button>
+            <button id="resetStopwatchButton" onclick="resetStopwatch()">Reset</button>
         </div>
 
         <div>
@@ -192,6 +192,7 @@
         let players = [];
         let setupVisible = true;
         document.getElementById('playersOnCourt').addEventListener('input', validateAndUpdateUI);
+
 
         let stopwatchInterval = null;
         let stopwatchElapsedTime = 0;
@@ -215,18 +216,25 @@
                 clearInterval(stopwatchInterval);
             }
         
-            // Reset the stopwatch
+            // Reset the stopwatch and start
             stopwatchElapsedTime = 0;
             updateStopwatchDisplay();
         
-            // Start the stopwatch
             const startTime = Date.now();
             stopwatchInterval = setInterval(() => {
                 stopwatchElapsedTime = Date.now() - startTime;
                 updateStopwatchDisplay();
-            }, 100); // Update every 100ms for tenths of a second accuracy
+            }, 100);
         }
-
+        
+        function resetStopwatch() {
+            if (stopwatchInterval) {
+                clearInterval(stopwatchInterval); // Stop the stopwatch
+                stopwatchInterval = null; // Clear the interval ID
+            }
+            stopwatchElapsedTime = 0; // Reset the elapsed time
+            updateStopwatchDisplay(); // Update the display
+        }
 
         function toggleSetupSection() {
             const setupSection = document.getElementById('setupSection');
