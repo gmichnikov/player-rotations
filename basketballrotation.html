@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Rotation Helper</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash/4.17.21/lodash.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .setup-section {
+            border-bottom: 2px solid #edf2f7;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+            transition: opacity 0.3s ease;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .toggle-button {
+            background: none;
+            border: none;
+            color: #4299e1;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        .toggle-button:hover {
+            background-color: #ebf8ff;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .player-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .player-tag {
+            background-color: #e3e9ff;
+            padding: 5px 10px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .remove-player {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0 5px;
+        }
+        .remove-player:hover {
+            color: #ff4444;
+        }
+        .shift {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        .shift.hidden {
+            height: 40px;
+            overflow: hidden;
+        }
+        .shift h3 {
+            margin-top: 0;
+            color: #2c5282;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .lineup-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        .court-players, .bench-players {
+            background-color: white;
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .court-players {
+            border-left: 4px solid #48bb78;
+        }
+        .bench-players {
+            border-left: 4px solid #ed8936;
+        }
+        input, button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4299e1;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #3182ce;
+        }
+        button:disabled {
+            background-color: #a0aec0;
+            cursor: not-allowed;
+        }
+        .error {
+            color: #e53e3e;
+            margin-top: 5px;
+        }
+        .stats {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #ebf8ff;
+            border-radius: 6px;
+        }
+        .section-label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #4a5568;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <div class="section-header">
+            <h1>Player Rotation Helper</h1>
+        </div>
+        <button class="toggle-button" onclick="toggleSetupSection()">Hide Setup</button>
+        <div class="setup-section" id="setupSection">
+            <div>
+                <button onclick="savePlayers()">Save Players</button>
+                <button onclick="loadPlayers()">Load Players</button>
+                <button onclick="clearPlayers()">Clear Players</button>
+            </div>
+
+
+            <div class="input-group">
+                <input type="text" id="playerName" placeholder="Enter player name" onkeypress="handleKeyPress(event)">
+                <button onclick="addPlayer()">Add Player</button>
+                <button onclick="randomizePlayers()">Randomize Players</button>
+            </div>
+
+            <div id="playerList" class="player-list"></div>
+            <div class="input-group">
+                <input type="number" id="shiftsCount" placeholder="Number of shifts" min="1">
+                <input type="number" id="playersOnCourt" placeholder="Players on court" value="5" min="1">
+                <button onclick="generateRotations()" id="generateBtn">Generate Rotations</button>
+            </div>
+            <div id="error" class="error"></div>
+        </div>
+
+        <div id="stopwatchSection" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;">
+            <div id="stopwatchDisplay" style="font-size: 24px;">00:00.0</div>
+            <button id="startStopwatchButton" onclick="startStopwatch()">Start</button>
+        </div>
+
+        <div>
+            <button onclick="showAllShifts()">Show All</button>
+            <button onclick="hideAllShifts()">Hide All</button>
+        </div>
+
+        <div id="rotations"></div>
+        <div id="stats" class="stats" style="display: none;"></div>
+    </div>
+
+    <script>
+        let players = [];
+        let setupVisible = true;
+        document.getElementById('playersOnCourt').addEventListener('input', validateAndUpdateUI);
+
+        let stopwatchInterval = null;
+        let stopwatchElapsedTime = 0;
+        
+        function formatTime(milliseconds) {
+            const totalSeconds = milliseconds / 1000;
+            const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const seconds = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
+            const tenths = Math.floor((milliseconds % 1000) / 100);
+            return `${minutes}:${seconds}.${tenths}`;
+        }
+        
+        function updateStopwatchDisplay() {
+            const display = document.getElementById('stopwatchDisplay');
+            display.textContent = formatTime(stopwatchElapsedTime);
+        }
+        
+        function startStopwatch() {
+            // Clear any existing interval
+            if (stopwatchInterval) {
+                clearInterval(stopwatchInterval);
+            }
+        
+            // Reset the stopwatch
+            stopwatchElapsedTime = 0;
+            updateStopwatchDisplay();
+        
+            // Start the stopwatch
+            const startTime = Date.now();
+            stopwatchInterval = setInterval(() => {
+                stopwatchElapsedTime = Date.now() - startTime;
+                updateStopwatchDisplay();
+            }, 100); // Update every 100ms for tenths of a second accuracy
+        }
+
+
+        function toggleSetupSection() {
+            const setupSection = document.getElementById('setupSection');
+            const toggleButton = document.querySelector('.toggle-button');
+        
+            setupVisible = !setupVisible;
+        
+            if (setupVisible) {
+                setupSection.style.display = 'block';
+                toggleButton.textContent = 'Hide Setup';
+            } else {
+                setupSection.style.display = 'none';
+                toggleButton.textContent = 'Show Setup';
+            }
+        }
+        
+        function toggleShift(shiftElement) {
+            const isHidden = shiftElement.style.display === 'none';
+            shiftElement.style.display = isHidden ? 'block' : 'none';
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                addPlayer();
+            }
+        }
+
+        function addPlayer() {
+            const input = document.getElementById('playerName');
+            const name = input.value.trim();
+            
+            if (name && !players.includes(name)) {
+                players.push(name);
+                updatePlayerList();
+                input.value = '';
+            }
+            validateAndUpdateUI();
+        }
+
+        function removePlayer(name) {
+            players = players.filter(p => p !== name);
+            updatePlayerList();
+            validateAndUpdateUI();
+        }
+
+        function updatePlayerList() {
+            const list = document.getElementById('playerList');
+            list.innerHTML = players.map(name => `
+                <div class="player-tag">
+                    ${name}
+                    <button class="remove-player" onclick="removePlayer('${name}')">&times;</button>
+                </div>
+            `).join('');
+        }
+
+        function randomizePlayers() {
+            if (players.length === 0) {
+                alert('No players to reorder. Please add players first.');
+                return;
+            }
+            players = players
+                .map(value => ({ value, sort: Math.random() }))
+                .sort((a, b) => a.sort - b.sort)
+                .map(({ value }) => value); // Shuffle logic
+            updatePlayerList(); // Update the UI to reflect the new order
+            // alert('Players reordered randomly.');
+        }
+
+        function validateAndUpdateUI() {
+            const generateBtn = document.getElementById('generateBtn');
+            const errorDiv = document.getElementById('error');
+            const playersOnCourt = parseInt(document.getElementById('playersOnCourt').value);
+        
+            if (players.length < playersOnCourt) {
+                generateBtn.disabled = true;
+                errorDiv.textContent = `Add at least ${playersOnCourt} players to generate rotations`;
+            } else {
+                generateBtn.disabled = false;
+                errorDiv.textContent = '';
+            }
+        }
+
+
+        function showAllShifts() {
+            document.querySelectorAll('.shift').forEach(shift => {
+                shift.style.display = 'block'; // Ensure the shift is fully visible
+            });
+        }
+        
+        function hideAllShifts() {
+            document.querySelectorAll('.shift').forEach(shift => {
+                shift.style.display = 'none'; // Fully hide the shift element
+            });
+        }
+
+        function generateRotations() {
+            const shiftsCount = parseInt(document.getElementById('shiftsCount').value);
+            const playersOnCourt = parseInt(document.getElementById('playersOnCourt').value);
+        
+            if (!shiftsCount || shiftsCount < 1 || !playersOnCourt || playersOnCourt < 1) {
+                document.getElementById('error').textContent = 'Please enter valid numbers for shifts and players on the court';
+                return;
+            }
+        
+            const rotations = [];
+            const playerStats = {};
+            players.forEach(player => playerStats[player] = 0);
+        
+            let currentPlayers = players.slice(0, playersOnCourt);
+            let waitingPlayers = players.slice(playersOnCourt);
+        
+            for (let shift = 0; shift < shiftsCount; shift++) {
+                rotations.push({
+                    court: [...currentPlayers],
+                    bench: [...waitingPlayers]
+                });
+        
+                // Update stats
+                currentPlayers.forEach(player => playerStats[player]++);
+        
+                if (players.length <= playersOnCourt + 5) {
+                    // Handle small teams rotation
+                    const newBench = [];
+                    const newCourt = [...currentPlayers];
+        
+                    waitingPlayers.forEach(benchedPlayer => {
+                        if (!newCourt.includes(benchedPlayer)) {
+                            const playerToBench = newCourt.shift();
+                            newBench.push(playerToBench);
+                            newCourt.push(benchedPlayer);
+                        }
+                    });
+        
+                    currentPlayers = newCourt;
+                    waitingPlayers = newBench;
+                } else {
+                    // Regular rotation logic for larger teams
+                    if (waitingPlayers.length > 0) {
+                        const minShifts = Math.min(...Object.values(playerStats));
+                        const playersToRemove = currentPlayers
+                            .filter(player => playerStats[player] > minShifts)
+                            .slice(0, Math.min(waitingPlayers.length, 2));
+        
+                        playersToRemove.forEach(player => {
+                            const idx = currentPlayers.indexOf(player);
+                            const newPlayer = waitingPlayers.shift();
+                            currentPlayers[idx] = newPlayer;
+                            waitingPlayers.push(player);
+                        });
+                    }
+                }
+            }
+        
+            displayRotations(rotations, playerStats);
+        }
+
+        function displayRotations(rotations, playerStats) {
+            const rotationsDiv = document.getElementById('rotations');
+            const statsDiv = document.getElementById('stats');
+            
+            rotationsDiv.innerHTML = rotations.map((rotation, index) => `
+                <div class="shift" id="shift-${index}">
+                    <h3>
+                        Shift ${index + 1}
+                        <button class="toggle-button" onclick="toggleShift(document.getElementById('shift-${index}'))">Hide</button>
+                    </h3>
+                    <div class="lineup-section">
+                        <div class="court-players">
+                            <div class="section-label">On Court:</div>
+                            ${rotation.court.join(', ')}
+                        </div>
+                        <div class="bench-players">
+                            <div class="section-label">On Bench:</div>
+                            ${rotation.bench.join(', ')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        
+            const totalShifts = rotations.length;
+            statsDiv.style.display = 'block';
+            statsDiv.innerHTML = '<h3>Playing Time Statistics</h3>' +
+                Object.entries(playerStats)
+                    .map(([player, shifts]) => `
+                        ${player}: ${shifts} shifts (${Math.round(shifts/totalShifts * 100)}%)
+                    `)
+                    .join('<br>');
+        }
+
+        function savePlayers() {
+            if (players.length === 0) {
+                alert('No players to save.');
+                return;
+            }
+            localStorage.setItem('players', JSON.stringify(players));
+            // alert('Player list saved to local storage.');
+        }
+        
+        function loadPlayers() {
+            const storedPlayers = localStorage.getItem('players');
+            if (storedPlayers) {
+                players = JSON.parse(storedPlayers);
+                updatePlayerList();
+                validateAndUpdateUI();
+                // alert('Player list loaded from local storage.');
+            } else {
+                alert('No saved player list found.');
+            }
+        }
+        
+        function clearPlayers() {
+            if (players.length === 0) {
+                // alert('No players to clear.');
+                return;
+            }
+        
+            if (confirm('Are you sure you want to clear all players?')) {
+                players = [];
+                updatePlayerList(); // Update the UI
+                validateAndUpdateUI(); // Revalidate the UI state
+                // alert('All players have been cleared.');
+            }
+        }
+
+        // Automatically load players from localStorage on page load
+        window.onload = function () {
+            const storedPlayers = localStorage.getItem('players');
+            if (storedPlayers) {
+                players = JSON.parse(storedPlayers);
+                updatePlayerList();
+                validateAndUpdateUI();
+                console.log('Players loaded automatically:', players);
+            } else {
+                console.log('No saved players found in localStorage.');
+            }
+        };
+
+    </script>
+</body>
+</html>
+
