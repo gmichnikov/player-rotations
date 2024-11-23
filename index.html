@@ -15,15 +15,20 @@
         }
         .container {
             background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         .setup-section {
             border-bottom: 2px solid #edf2f7;
             padding-bottom: 20px;
             margin-bottom: 20px;
             transition: opacity 0.3s ease;
+        }
+        .setup-section > div {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
         }
         .section-header {
             display: flex;
@@ -108,10 +113,13 @@
             border-left: 4px solid #ed8936;
         }
         input, button {
-            padding: 8px 12px;
             border: 1px solid #ddd;
+        }
+        input {
             border-radius: 4px;
-            font-size: 16px;
+            padding: 6px 10px;
+            font-size: 14px;
+            width: auto; /* Adjust width dynamically */
         }
         button {
             background-color: #4299e1;
@@ -119,6 +127,9 @@
             border: none;
             cursor: pointer;
             transition: background-color 0.2s;
+            padding: 6px 10px;
+            font-size: 14px;
+            border-radius: 5px;
         }
         button:hover {
             background-color: #3182ce;
@@ -142,6 +153,24 @@
             margin-bottom: 8px;
             color: #4a5568;
         }
+        
+        #stopwatchSection {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        #stopwatchDisplay {
+            font-size: 26px;
+            font-weight: bold;
+            padding: 5px 10px;
+            background-color: #edf2f7;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        
     </style>
 </head>
 <body>
